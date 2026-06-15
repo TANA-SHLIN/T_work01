@@ -1,0 +1,797 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>暗記カードアプリ</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','Helvetica Neue',Arial,sans-serif;background:#f5f5f5;min-height:100vh;display:flex;justify-content:center;padding:16px 8px 40px;}
+#app{max-width:420px;width:100%;background:#fff;border-radius:16px;padding:16px;min-height:600px;box-shadow:0 2px 12px rgba(0,0,0,.08);}
+.nav-tabs{display:flex;gap:2px;margin-bottom:16px;border-bottom:1px solid #e5e5e5;}
+.nav-tab{flex:1;padding:9px 2px;background:none;border:none;cursor:pointer;font-size:11px;color:#888;font-family:inherit;border-bottom:2px solid transparent;transition:all .15s;}
+.nav-tab.active{color:#185FA5;border-bottom-color:#185FA5;font-weight:600;}
+.screen{display:none;}.screen.active{display:block;}
+.btn{width:100%;padding:11px;background:#fff;border:1px solid #ddd;border-radius:8px;font-size:14px;font-family:inherit;color:#333;cursor:pointer;margin-top:6px;transition:background .15s;}
+.btn:hover{background:#f5f5f5;}
+.btn.blue{border-color:#185FA5;color:#185FA5;}
+.btn.sm{padding:7px 14px;font-size:12px;width:auto;margin-top:0;}
+.form-group{margin-bottom:12px;}
+.form-group label{font-size:12px;color:#666;display:block;margin-bottom:5px;}
+.form-group input,.form-group textarea{width:100%;padding:9px 11px;border:1px solid #ddd;border-radius:8px;font-size:14px;font-family:inherit;color:#333;background:#fff;resize:vertical;outline:none;}
+.form-group input:focus,.form-group textarea:focus{border-color:#185FA5;}
+.form-group textarea{min-height:64px;}
+.img-preview{width:100%;height:130px;border-radius:8px;border:1.5px dashed #ccc;display:flex;align-items:center;justify-content:center;cursor:pointer;overflow:hidden;background:#fafafa;}
+.img-preview img{width:100%;height:100%;object-fit:cover;}
+.img-preview .ph{color:#aaa;font-size:12px;text-align:center;line-height:1.8;}
+.group-chip{display:inline-flex;align-items:center;gap:5px;padding:5px 11px;border-radius:20px;border:1px solid #ddd;font-size:12px;cursor:pointer;background:#fff;color:#666;margin:3px 3px 3px 0;transition:all .15s;}
+.group-chip.active{background:#E6F1FB;border-color:#185FA5;color:#0C447C;font-weight:600;}
+.group-chip .dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;}
+.group-row{display:flex;align-items:center;gap:8px;padding:10px;border:1px solid #eee;border-radius:8px;margin-bottom:7px;background:#fff;}
+.group-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0;}
+.group-info{flex:1;min-width:0;}
+.group-info .gname{font-size:13px;font-weight:600;color:#333;}
+.group-info .gcnt{font-size:11px;color:#888;}
+.icon-btn{background:none;border:none;cursor:pointer;color:#bbb;padding:4px;display:flex;align-items:center;transition:color .15s;}
+.icon-btn:hover{color:#e24b4a;}
+.card-row{display:flex;align-items:center;gap:9px;padding:9px 10px;border:1px solid #eee;border-radius:8px;margin-bottom:7px;background:#fff;}
+.card-thumb{width:38px;height:38px;border-radius:6px;object-fit:cover;flex-shrink:0;}
+.card-thumb-e{width:38px;height:38px;border-radius:6px;background:#f5f5f5;flex-shrink:0;display:flex;align-items:center;justify-content:center;}
+.card-info{flex:1;min-width:0;}
+.card-info .cn{font-size:13px;font-weight:600;color:#333;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.card-info .cg{font-size:11px;color:#888;margin-top:2px;}
+.gbadge{display:inline-block;background:#E6F1FB;color:#0C447C;border-radius:10px;padding:1px 7px;font-size:10px;margin-right:3px;}
+.stats-bar{display:flex;gap:8px;margin-bottom:12px;}
+.stat{flex:1;background:#f7f7f7;border-radius:8px;padding:8px;text-align:center;}
+.stat .num{font-size:19px;font-weight:600;color:#333;}
+.stat .lbl{font-size:10px;color:#888;}
+.mode-sel{display:flex;gap:8px;margin-bottom:14px;}
+.mode-btn{flex:1;padding:9px 6px;border:1px solid #ddd;border-radius:8px;background:#fff;font-size:11px;font-family:inherit;color:#888;cursor:pointer;text-align:center;transition:all .15s;}
+.mode-btn.active{border-color:#185FA5;color:#185FA5;background:#E6F1FB;font-weight:600;}
+.study-area{display:flex;flex-direction:column;align-items:center;}
+.card-stack{position:relative;width:320px;height:330px;margin-bottom:14px;}
+.flip-card{position:absolute;width:320px;height:330px;perspective:1000px;cursor:pointer;user-select:none;-webkit-user-select:none;}
+.flip-inner{position:relative;width:100%;height:100%;transform-style:preserve-3d;transition:transform .45s cubic-bezier(.4,0,.2,1);}
+.flip-card.flipped .flip-inner{transform:rotateY(180deg);}
+.flip-front,.flip-back{position:absolute;inset:0;backface-visibility:hidden;-webkit-backface-visibility:hidden;border-radius:14px;border:1px solid #e0e0e0;background:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center;overflow:hidden;}
+.flip-back{transform:rotateY(180deg);padding:22px;gap:10px;}
+.flip-back .cn{font-size:21px;font-weight:600;color:#333;text-align:center;}
+.flip-back .cd{font-size:13px;color:#666;text-align:center;line-height:1.6;}
+.flip-back .divider{width:36px;height:1px;background:#e0e0e0;}
+.flip-front img{width:100%;height:100%;object-fit:cover;}
+.tap-hint{position:absolute;bottom:10px;font-size:11px;color:#aaa;}
+.swipe-ov{position:absolute;inset:0;border-radius:14px;display:flex;align-items:center;justify-content:center;font-size:24px;font-weight:600;opacity:0;pointer-events:none;}
+.swipe-ov.l{background:rgba(226,75,74,.15);color:#A32D2D;}
+.swipe-ov.r{background:rgba(29,158,117,.12);color:#0F6E56;}
+.swipe-hint{display:flex;align-items:center;justify-content:space-between;width:280px;}
+.sh{font-size:11px;color:#aaa;display:flex;flex-direction:column;align-items:center;gap:3px;}
+.sh svg{width:20px;height:20px;}
+.sh.l{color:#c0392b!important;}
+.sh.r{color:#0F6E56!important;}
+.action-btns{display:flex;gap:20px;margin-top:12px;}
+.action-btn{width:54px;height:54px;border-radius:50%;border:1px solid #ddd;background:#fff;cursor:pointer;font-size:22px;display:flex;align-items:center;justify-content:center;transition:all .15s;}
+.action-btn:active{transform:scale(.93);}
+.action-btn.wrong{border-color:#c0392b;color:#c0392b;}
+.action-btn.correct{border-color:#0F6E56;color:#0F6E56;}
+.card-counter{font-size:12px;color:#aaa;margin-bottom:7px;}
+.quiz-area{display:flex;flex-direction:column;gap:12px;}
+.quiz-q{background:#f7f7f7;border-radius:12px;padding:14px 16px;text-align:center;}
+.quiz-q .ql{font-size:10px;color:#aaa;margin-bottom:4px;}
+.quiz-q .qn{font-size:20px;font-weight:600;color:#333;}
+.quiz-q .qd{font-size:12px;color:#888;margin-top:3px;line-height:1.5;}
+.quiz-opts{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px;}
+.quiz-opt{border:1px solid #e0e0e0;border-radius:10px;overflow:hidden;cursor:pointer;background:#fff;transition:transform .1s;position:relative;}
+.quiz-opt:active{transform:scale(.97);}
+.quiz-opt img{width:100%;height:120px;object-fit:cover;display:block;}
+.quiz-opt .no-img{width:100%;height:120px;display:flex;align-items:center;justify-content:center;background:#f5f5f5;color:#ccc;flex-direction:column;gap:5px;font-size:11px;}
+.quiz-opt.correct{border:2px solid #0F6E56;}
+.quiz-opt.wrong{border:2px solid #c0392b;}
+.quiz-opt.disabled{cursor:default;}
+.quiz-opt .badge{position:absolute;top:5px;right:5px;width:24px;height:24px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;}
+.quiz-opt.correct .badge{background:#0F6E56;color:#fff;}
+.quiz-opt.wrong .badge{background:#c0392b;color:#fff;}
+.reveal-label{display:none;position:absolute;bottom:0;left:0;right:0;padding:4px 6px;font-size:11px;font-weight:600;text-align:center;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.quiz-opt.correct .reveal-label{display:block;background:rgba(15,110,86,.88);color:#fff;}
+.quiz-opt.wrong .reveal-label{display:block;background:rgba(192,57,43,.82);color:#fff;}
+.result-box{text-align:center;padding:24px 0;}
+.result-box .big{font-size:48px;margin-bottom:8px;}
+.result-box h3{font-size:18px;font-weight:600;color:#333;margin-bottom:8px;}
+.result-box p{font-size:14px;color:#888;margin-bottom:18px;}
+.modal-bg{background:rgba(0,0,0,.35);border-radius:12px;padding:16px;margin-bottom:12px;}
+.modal{background:#fff;border-radius:12px;border:1px solid #e0e0e0;padding:18px;width:100%;}
+.modal h3{font-size:15px;font-weight:600;color:#333;margin-bottom:14px;}
+.color-row{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:6px;}
+.color-dot{width:26px;height:26px;border-radius:50%;cursor:pointer;border:2px solid transparent;transition:border-color .15s;}
+.color-dot.sel{border-color:#333;}
+.empty-msg{text-align:center;padding:40px 0;color:#bbb;font-size:13px;}
+.empty-msg svg{display:block;margin:0 auto 10px;width:40px;height:40px;}
+.all-chip{display:inline-flex;align-items:center;gap:5px;padding:5px 12px;border-radius:20px;border:1px solid #ddd;font-size:12px;cursor:pointer;background:#fff;color:#888;margin:3px 3px 3px 0;}
+.all-chip.active{background:#E6F1FB;border-color:#185FA5;color:#0C447C;font-weight:600;}
+.group-select-area{margin-bottom:14px;}
+.group-select-area .label{font-size:12px;color:#888;margin-bottom:6px;}
+.io-bar{display:flex;gap:8px;margin-bottom:12px;}
+.io-btn{flex:1;display:flex;align-items:center;justify-content:center;gap:6px;padding:9px;background:#fff;border:1px solid #ddd;border-radius:8px;font-size:12px;font-family:inherit;color:#555;cursor:pointer;}
+.io-btn.export-btn{border-color:#185FA5;color:#185FA5;}
+.io-btn.import-btn{border-color:#0F6E56;color:#0F6E56;}
+.toast{padding:10px 14px;border-radius:8px;font-size:12px;margin-bottom:10px;display:flex;align-items:center;gap:8px;}
+.toast.success{background:#EAF3DE;color:#27500A;border:1px solid #97C459;}
+.toast.error{background:#FCEBEB;color:#791F1F;border:1px solid #F09595;}
+.toast.info{background:#E6F1FB;color:#0C447C;border:1px solid #85B7EB;}
+.import-opts{background:#f7f7f7;border-radius:8px;padding:12px;margin-bottom:10px;font-size:13px;}
+.import-opts p{color:#444;margin-bottom:6px;font-weight:600;}
+.import-opts .sub{font-size:11px;color:#888;margin-bottom:8px;}
+.import-opts .opt-row{display:flex;gap:8px;flex-wrap:wrap;}
+.start-box{text-align:center;padding:30px 0;}
+.start-box .icon{font-size:40px;margin-bottom:12px;}
+.start-box .count{font-size:14px;color:#888;margin-bottom:14px;}
+</style>
+</head>
+<body>
+<div id="app">
+  <div class="nav-tabs">
+    <button class="nav-tab active" data-tab="cards">📋 カード</button>
+    <button class="nav-tab" data-tab="groups">📁 グループ</button>
+    <button class="nav-tab" data-tab="add">➕ 追加</button>
+    <button class="nav-tab" data-tab="study">🧠 学習</button>
+  </div>
+
+  <!-- カード一覧 -->
+  <div id="cardsScreen" class="screen active">
+    <div class="io-bar">
+      <button class="io-btn export-btn" id="btnExport">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+        エクスポート
+      </button>
+      <label class="io-btn import-btn" id="lblImport" style="cursor:pointer;">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+        インポート
+        <input type="file" id="importFile" accept=".json" style="display:none;">
+      </label>
+    </div>
+    <div id="importArea"></div>
+    <div id="toastArea"></div>
+    <div id="cardList"></div>
+    <div id="cardEmpty" class="empty-msg">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="M7 8h10M7 12h6"/></svg>
+      カードがありません
+    </div>
+  </div>
+
+  <!-- グループ -->
+  <div id="groupsScreen" class="screen">
+    <button class="btn blue" id="btnAddGroup" style="margin-bottom:12px;">＋ グループを作成</button>
+    <div id="addGroupArea"></div>
+    <div id="groupList"></div>
+    <div id="groupEmpty" class="empty-msg">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 7a2 2 0 012-2h4l2 2h8a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2V7z"/></svg>
+      グループがありません
+    </div>
+  </div>
+
+  <!-- カード追加 -->
+  <div id="addScreen" class="screen">
+    <div class="form-group">
+      <label>写真</label>
+      <div class="img-preview" id="imgPreview">
+        <div class="ph">📷<br>タップして写真を選択</div>
+      </div>
+      <input type="file" id="fileInput" accept="image/*" style="display:none;">
+    </div>
+    <div class="form-group">
+      <label>名称</label>
+      <input type="text" id="nameInput" placeholder="例：東京タワー" maxlength="60">
+    </div>
+    <div class="form-group">
+      <label>説明</label>
+      <textarea id="descInput" placeholder="例：1958年に完成した電波塔。高さ333m。"></textarea>
+    </div>
+    <div class="form-group">
+      <label>グループ（複数選択可）</label>
+      <div id="groupChips" style="margin-top:4px;"></div>
+    </div>
+    <button class="btn blue" id="btnAddCard">＋ カードを追加</button>
+  </div>
+
+  <!-- 学習 -->
+  <div id="studyScreen" class="screen">
+    <div class="group-select-area">
+      <div class="label">学習するグループ</div>
+      <div id="studyGroupChips"></div>
+    </div>
+    <div class="mode-sel">
+      <button class="mode-btn active" id="modeFlip">
+        <span style="font-size:16px;display:block;margin-bottom:2px;">🔄</span>フリップ
+      </button>
+      <button class="mode-btn" id="modeQuiz">
+        <span style="font-size:16px;display:block;margin-bottom:2px;">🔍</span>写真選択
+      </button>
+    </div>
+    <div id="studyContent"></div>
+  </div>
+</div>
+
+<script>
+(function() {
+'use strict';
+
+// ===== STATE =====
+const GROUP_COLORS = ['#378ADD','#1D9E75','#D85A30','#D4537E','#7F77DD','#BA7517','#E24B4A','#888780'];
+let cards = [], groups = [], currentImg = null, studyMode = 'flip';
+let selectedStudyGroups = new Set(['__all__']);
+let addCardGroups = new Set();
+let selColorIdx = 0;
+let buildOptionsRef = [];
+let isDragging = false, cardMoved = false, startX = 0, currentCardEl = null;
+let studyQueue = [], studyIndex = 0, sCorrect = 0, sWrong = 0, isFlipped = false;
+let quizQueue = [], quizIndex = 0, qCorrect = 0, qWrong = 0, quizAnswered = false;
+
+// ===== PERSIST =====
+function save() {
+  try { localStorage.setItem('fc_cards', JSON.stringify(cards)); localStorage.setItem('fc_groups', JSON.stringify(groups)); } catch(e) {}
+}
+function load() {
+  try {
+    const cr = localStorage.getItem('fc_cards');
+    const gr = localStorage.getItem('fc_groups');
+    if (cr) cards = JSON.parse(cr);
+    if (gr) groups = JSON.parse(gr);
+  } catch(e) {}
+}
+
+// ===== UTILS =====
+function escH(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+function shuffle(a) { for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];} return a; }
+function groupById(id) { return groups.find(g => g.id === id); }
+function cardGroupNames(card) { return (card.groups||[]).map(gid => { const g = groupById(gid); return g ? g.name : null; }).filter(Boolean); }
+function getStudyCards() {
+  if (selectedStudyGroups.has('__all__')) return cards;
+  return cards.filter(c => (c.groups||[]).some(gid => selectedStudyGroups.has(gid)));
+}
+const ICON_TRASH = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4a1 1 0 011-1h4a1 1 0 011 1v2"/></svg>`;
+const ICON_CAM = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="28" height="28"><path d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z"/><circle cx="12" cy="13" r="4"/></svg>`;
+const ICON_NO_IMG = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#ccc" stroke-width="1.5"><path d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z"/><circle cx="12" cy="13" r="4"/></svg>`;
+
+// ===== TOAST =====
+function showToast(msg, type) {
+  type = type || 'info';
+  const area = document.getElementById('toastArea');
+  if (!area) return;
+  const icon = type==='success' ? '✅' : type==='error' ? '❌' : 'ℹ️';
+  const div = document.createElement('div');
+  div.className = 'toast ' + type;
+  div.innerHTML = '<span>' + icon + '</span><span>' + escH(msg) + '</span>';
+  area.appendChild(div);
+  setTimeout(function() { div.style.opacity='0'; div.style.transition='opacity .4s'; setTimeout(function(){ div.remove(); }, 400); }, 3500);
+}
+
+// ===== TABS =====
+function showTab(tab) {
+  document.querySelectorAll('.nav-tab').forEach(function(t) { t.classList.toggle('active', t.dataset.tab === tab); });
+  document.querySelectorAll('.screen').forEach(function(s) { s.classList.remove('active'); });
+  document.getElementById(tab + 'Screen').classList.add('active');
+  if (tab === 'cards') renderCards();
+  if (tab === 'groups') renderGroups();
+  if (tab === 'add') renderGroupChips();
+  if (tab === 'study') { renderStudyGroupChips(); resetSession(); }
+}
+
+// ===== EXPORT / IMPORT =====
+function exportData() {
+  if (!cards.length && !groups.length) { showToast('エクスポートするデータがありません', 'error'); return; }
+  const data = { version: 1, exportedAt: new Date().toISOString(), groups: groups, cards: cards };
+  const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  const date = new Date().toISOString().slice(0, 10);
+  a.href = url; a.download = 'flashcards_' + date + '.json';
+  document.body.appendChild(a); a.click();
+  document.body.removeChild(a); URL.revokeObjectURL(url);
+  showToast(cards.length + '枚のカード・' + groups.length + '件のグループをエクスポートしました', 'success');
+}
+
+function handleImportFile(e) {
+  const file = e.target.files[0]; if (!file) return;
+  const reader = new FileReader();
+  reader.onload = function(ev) {
+    try {
+      const data = JSON.parse(ev.target.result);
+      if (!data.cards || !Array.isArray(data.cards)) throw new Error('invalid');
+      showImportOptions(data);
+    } catch(err) {
+      showToast('読み込みに失敗しました。正しいJSONファイルを選択してください', 'error');
+    }
+    e.target.value = '';
+  };
+  reader.readAsText(file);
+}
+
+function showImportOptions(data) {
+  const nc = data.cards.length, ng = (data.groups||[]).length;
+  const area = document.getElementById('importArea');
+  area.innerHTML = '';
+  const div = document.createElement('div');
+  div.className = 'import-opts';
+  div.innerHTML = '<p>📂 ファイルの内容</p>'
+    + '<div class="sub">' + nc + '枚のカード・' + ng + '件のグループが見つかりました</div>'
+    + '<div class="sub">現在：' + cards.length + '枚のカード・' + groups.length + '件のグループ</div>'
+    + '<p style="margin-top:8px;">インポート方法を選択してください</p>'
+    + '<div class="opt-row">'
+    + '<button class="btn sm blue" id="btnMerge">追加（現在を保持）</button>'
+    + '<button class="btn sm" id="btnReplace" style="border-color:#c0392b;color:#c0392b;">上書き</button>'
+    + '<button class="btn sm" id="btnCancelImport">キャンセル</button>'
+    + '</div>';
+  area.appendChild(div);
+  div.querySelector('#btnMerge').addEventListener('click', function() { doImport('merge', data); });
+  div.querySelector('#btnReplace').addEventListener('click', function() { doImport('replace', data); });
+  div.querySelector('#btnCancelImport').addEventListener('click', function() { area.innerHTML = ''; });
+}
+
+function doImport(mode, data) {
+  const importGroups = data.groups || [];
+  const importCards = data.cards || [];
+  if (mode === 'replace') {
+    groups = importGroups.slice();
+    cards = importCards.slice();
+    showToast(importCards.length + '枚のカード・' + importGroups.length + '件のグループをインポートしました（上書き）', 'success');
+  } else {
+    const existingGroupIds = new Set(groups.map(function(g){ return g.id; }));
+    const existingCardIds = new Set(cards.map(function(c){ return c.id; }));
+    const groupIdMap = {};
+    importGroups.forEach(function(g) {
+      if (existingGroupIds.has(g.id)) {
+        const newId = Date.now() + Math.floor(Math.random() * 10000);
+        groupIdMap[g.id] = newId;
+        groups.push(Object.assign({}, g, { id: newId }));
+      } else {
+        groupIdMap[g.id] = g.id;
+        groups.push(Object.assign({}, g));
+      }
+    });
+    importCards.forEach(function(c) {
+      const newGroups = (c.groups||[]).map(function(gid){ return groupIdMap[gid] || gid; });
+      const newId = existingCardIds.has(c.id) ? Date.now() + Math.floor(Math.random() * 10000) : c.id;
+      cards.push(Object.assign({}, c, { id: newId, groups: newGroups }));
+    });
+    showToast(importCards.length + '枚のカード・' + importGroups.length + '件のグループを追加しました', 'success');
+  }
+  document.getElementById('importArea').innerHTML = '';
+  save(); renderCards(); renderGroups(); renderStudyGroupChips();
+}
+
+// ===== CARDS =====
+function renderCards() {
+  const el = document.getElementById('cardList');
+  const em = document.getElementById('cardEmpty');
+  if (!cards.length) { el.innerHTML = ''; em.style.display = 'block'; return; }
+  em.style.display = 'none';
+  el.innerHTML = '';
+  cards.forEach(function(c) {
+    const gnames = cardGroupNames(c);
+    const row = document.createElement('div');
+    row.className = 'card-row';
+    row.innerHTML = (c.img ? '<img class="card-thumb" src="' + c.img + '" alt="">' : '<div class="card-thumb-e">' + ICON_NO_IMG + '</div>')
+      + '<div class="card-info"><div class="cn">' + escH(c.name) + '</div><div class="cg">'
+      + (gnames.length ? gnames.map(function(n){ return '<span class="gbadge">' + escH(n) + '</span>'; }).join('') : 'グループなし')
+      + '</div></div><button class="icon-btn" aria-label="削除">' + ICON_TRASH + '</button>';
+    row.querySelector('.icon-btn').addEventListener('click', function() { deleteCard(c.id); });
+    el.appendChild(row);
+  });
+}
+
+function deleteCard(id) {
+  if (!confirm('このカードを削除しますか？')) return;
+  cards = cards.filter(function(c){ return c.id !== id; });
+  save(); renderCards();
+}
+
+// ===== GROUPS =====
+function renderGroups() {
+  const el = document.getElementById('groupList');
+  const em = document.getElementById('groupEmpty');
+  if (!groups.length) { el.innerHTML = ''; em.style.display = 'block'; return; }
+  em.style.display = 'none';
+  el.innerHTML = '';
+  groups.forEach(function(g) {
+    const cnt = cards.filter(function(c){ return (c.groups||[]).includes(g.id); }).length;
+    const row = document.createElement('div');
+    row.className = 'group-row';
+    row.innerHTML = '<div class="group-dot" style="background:' + g.color + '"></div>'
+      + '<div class="group-info"><div class="gname">' + escH(g.name) + '</div><div class="gcnt">' + cnt + '枚</div></div>'
+      + '<button class="icon-btn" aria-label="削除">' + ICON_TRASH + '</button>';
+    row.querySelector('.icon-btn').addEventListener('click', function() { deleteGroup(g.id); });
+    el.appendChild(row);
+  });
+}
+
+function deleteGroup(id) {
+  if (!confirm('このグループを削除しますか？\nカード自体は削除されません。')) return;
+  groups = groups.filter(function(g){ return g.id !== id; });
+  cards = cards.map(function(c){ return Object.assign({}, c, { groups: (c.groups||[]).filter(function(gid){ return gid !== id; }) }); });
+  if (selectedStudyGroups.has(id)) { selectedStudyGroups.delete(id); if (!selectedStudyGroups.size) selectedStudyGroups = new Set(['__all__']); }
+  save(); renderCards(); renderGroups(); renderStudyGroupChips();
+}
+
+function showAddGroupModal() {
+  const area = document.getElementById('addGroupArea');
+  selColorIdx = 0;
+  const wrap = document.createElement('div');
+  wrap.className = 'modal-bg';
+  const modal = document.createElement('div');
+  modal.className = 'modal';
+  modal.innerHTML = '<h3>グループを作成</h3>'
+    + '<div class="form-group"><label>グループ名</label><input type="text" id="gnameInput" placeholder="例：動物、建物…" maxlength="30"></div>'
+    + '<div class="form-group"><label>カラー</label><div class="color-row" id="colorRow">'
+    + GROUP_COLORS.map(function(c,i){ return '<div class="color-dot' + (i===0?' sel':'') + '" style="background:' + c + '" data-ci="' + i + '"></div>'; }).join('')
+    + '</div></div>'
+    + '<div style="display:flex;gap:8px;"><button class="btn sm blue" id="btnConfirmGroup">作成</button><button class="btn sm" id="btnCancelGroup">キャンセル</button></div>';
+  wrap.appendChild(modal);
+  area.innerHTML = '';
+  area.appendChild(wrap);
+
+  modal.querySelector('#colorRow').addEventListener('click', function(e) {
+    const dot = e.target.closest('.color-dot');
+    if (!dot) return;
+    selColorIdx = parseInt(dot.dataset.ci);
+    modal.querySelectorAll('.color-dot').forEach(function(d){ d.classList.toggle('sel', d.dataset.ci == selColorIdx); });
+  });
+  modal.querySelector('#btnConfirmGroup').addEventListener('click', function() {
+    const name = document.getElementById('gnameInput').value.trim();
+    if (!name) { alert('グループ名を入力してください'); return; }
+    groups.push({ id: Date.now(), name: name, color: GROUP_COLORS[selColorIdx] });
+    area.innerHTML = '';
+    save(); renderGroups(); renderGroupChips(); renderStudyGroupChips();
+  });
+  modal.querySelector('#btnCancelGroup').addEventListener('click', function() { area.innerHTML = ''; });
+}
+
+// ===== GROUP CHIPS (add screen) =====
+function renderGroupChips() {
+  const el = document.getElementById('groupChips');
+  if (!groups.length) { el.innerHTML = '<span style="font-size:12px;color:#aaa;">先にグループを作成してください</span>'; return; }
+  el.innerHTML = '';
+  groups.forEach(function(g) {
+    const span = document.createElement('span');
+    span.className = 'group-chip' + (addCardGroups.has(g.id) ? ' active' : '');
+    span.innerHTML = '<span class="dot" style="background:' + g.color + '"></span>' + escH(g.name);
+    span.addEventListener('click', function() {
+      if (addCardGroups.has(g.id)) addCardGroups.delete(g.id); else addCardGroups.add(g.id);
+      renderGroupChips();
+    });
+    el.appendChild(span);
+  });
+}
+
+// ===== ADD CARD =====
+function addCard() {
+  const name = document.getElementById('nameInput').value.trim();
+  const desc = document.getElementById('descInput').value.trim();
+  if (!name) { alert('名称を入力してください'); return; }
+  cards.push({ id: Date.now(), img: currentImg, name: name, desc: desc, groups: Array.from(addCardGroups) });
+  currentImg = null; addCardGroups = new Set();
+  document.getElementById('nameInput').value = '';
+  document.getElementById('descInput').value = '';
+  document.getElementById('fileInput').value = '';
+  document.getElementById('imgPreview').innerHTML = '<div class="ph">' + ICON_CAM + '<br>タップして写真を選択</div>';
+  renderGroupChips(); save(); renderCards(); showTab('cards');
+}
+
+// ===== STUDY GROUP CHIPS =====
+function renderStudyGroupChips() {
+  const el = document.getElementById('studyGroupChips');
+  if (!el) return;
+  el.innerHTML = '';
+  const all = document.createElement('span');
+  all.className = 'all-chip' + (selectedStudyGroups.has('__all__') ? ' active' : '');
+  all.textContent = '📚 すべて';
+  all.addEventListener('click', function() {
+    selectedStudyGroups = new Set(['__all__']);
+    renderStudyGroupChips(); resetSession();
+  });
+  el.appendChild(all);
+  groups.forEach(function(g) {
+    const span = document.createElement('span');
+    span.className = 'group-chip' + (selectedStudyGroups.has(g.id) ? ' active' : '');
+    span.innerHTML = '<span class="dot" style="background:' + g.color + '"></span>' + escH(g.name);
+    span.addEventListener('click', function() {
+      selectedStudyGroups.delete('__all__');
+      if (selectedStudyGroups.has(g.id)) selectedStudyGroups.delete(g.id);
+      else selectedStudyGroups.add(g.id);
+      if (!selectedStudyGroups.size) selectedStudyGroups = new Set(['__all__']);
+      renderStudyGroupChips(); resetSession();
+    });
+    el.appendChild(span);
+  });
+}
+
+// ===== STUDY MODE =====
+function setMode(m) {
+  studyMode = m;
+  document.getElementById('modeFlip').classList.toggle('active', m === 'flip');
+  document.getElementById('modeQuiz').classList.toggle('active', m === 'quiz');
+  resetSession();
+}
+
+function resetSession() {
+  window.removeEventListener('mousemove', onMouseMove);
+  window.removeEventListener('mouseup', onMouseUp);
+  const sc = getStudyCards();
+  const el = document.getElementById('studyContent');
+  if (!el) return;
+  if (!sc.length) {
+    el.innerHTML = '<div class="empty-msg"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="40" height="40"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="M7 8h10M7 12h6"/></svg>カードがありません</div>';
+    return;
+  }
+  const box = document.createElement('div');
+  box.className = 'start-box';
+  box.innerHTML = '<div class="icon">' + (studyMode==='flip'?'🔄':'🔍') + '</div>'
+    + '<div class="count">' + sc.length + '枚のカードが選択されています</div>';
+  const btn = document.createElement('button');
+  btn.className = 'btn blue';
+  btn.style.maxWidth = '200px';
+  btn.style.margin = '0 auto';
+  btn.textContent = '学習を開始する';
+  btn.addEventListener('click', startCurrentMode);
+  box.appendChild(btn);
+  el.innerHTML = '';
+  el.appendChild(box);
+}
+
+function startCurrentMode() {
+  if (studyMode === 'flip') initFlip(); else initQuiz();
+}
+
+// ===== FLIP =====
+function initFlip() {
+  const sc = getStudyCards();
+  if (!sc.length) { document.getElementById('studyContent').innerHTML = '<div class="empty-msg">カードがありません</div>'; return; }
+  studyQueue = shuffle(sc.slice()); studyIndex = 0; sCorrect = 0; sWrong = 0;
+  renderFlipCard();
+}
+
+function renderFlipCard() {
+  if (studyIndex >= studyQueue.length) { showFlipResult(); return; }
+  isFlipped = false;
+  const card = studyQueue[studyIndex], total = studyQueue.length;
+  const el = document.getElementById('studyContent');
+  el.innerHTML = '<div class="stats-bar">'
+    + '<div class="stat"><div class="num" style="color:#0F6E56">' + sCorrect + '</div><div class="lbl">覚えた</div></div>'
+    + '<div class="stat"><div class="num">' + (total - studyIndex) + '</div><div class="lbl">残り</div></div>'
+    + '<div class="stat"><div class="num" style="color:#c0392b">' + sWrong + '</div><div class="lbl">もう一度</div></div>'
+    + '</div>'
+    + '<div class="study-area">'
+    + '<div class="card-counter">' + (studyIndex+1) + ' / ' + total + '</div>'
+    + '<div class="card-stack">'
+    + '<div class="flip-card" id="mainCard">'
+    + '<div class="flip-inner">'
+    + '<div class="flip-front">'
+    + (card.img ? '<img src="' + card.img + '" alt="">' : '<div style="color:#ccc;font-size:40px;">📷</div>')
+    + '<div class="tap-hint">🔄 タップして裏面を見る</div>'
+    + '<div class="swipe-ov l" id="ovL">✕ もう一度</div>'
+    + '<div class="swipe-ov r" id="ovR">✓ 覚えた</div>'
+    + '</div>'
+    + '<div class="flip-back"><div class="cn">' + escH(card.name) + '</div><div class="divider"></div><div class="cd">' + escH(card.desc||'説明なし') + '</div></div>'
+    + '</div></div></div>'
+    + '<div class="swipe-hint">'
+    + '<div class="sh l"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>もう一度</div>'
+    + '<div class="sh" style="font-size:10px;">スワイプ</div>'
+    + '<div class="sh r"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>覚えた！</div>'
+    + '</div>'
+    + '<div class="action-btns">'
+    + '<button class="action-btn wrong" id="btnWrong">✕</button>'
+    + '<button class="action-btn correct" id="btnCorrect">✓</button>'
+    + '</div></div>';
+
+  document.getElementById('btnWrong').addEventListener('click', function() { markFlip(false); });
+  document.getElementById('btnCorrect').addEventListener('click', function() { markFlip(true); });
+  setupSwipe();
+}
+
+function setupSwipe() {
+  const el = document.getElementById('mainCard'); if (!el) return;
+  currentCardEl = el;
+  el.addEventListener('click', flipCard);
+  el.addEventListener('touchstart', onTouchStart, { passive: true });
+  el.addEventListener('touchmove', onTouchMove, { passive: false });
+  el.addEventListener('touchend', onTouchEnd, { passive: true });
+  el.addEventListener('mousedown', onMouseDown);
+  window.addEventListener('mousemove', onMouseMove);
+  window.addEventListener('mouseup', onMouseUp);
+}
+
+function flipCard() { if (isDragging || cardMoved) return; isFlipped = !isFlipped; currentCardEl.classList.toggle('flipped', isFlipped); }
+
+function onTouchStart(e) { startX = e.touches[0].clientX; isDragging = false; cardMoved = false; }
+function onTouchMove(e) {
+  const dx = e.touches[0].clientX - startX;
+  if (Math.abs(dx) > 8) { isDragging = true; e.preventDefault(); }
+  if (!isDragging) return;
+  cardMoved = true; moveCard(dx);
+}
+function onTouchEnd(e) { const dx = e.changedTouches[0].clientX - startX; if (isDragging && cardMoved) finishSwipe(dx); isDragging = false; setTimeout(function(){ cardMoved = false; }, 50); }
+function onMouseDown(e) { startX = e.clientX; isDragging = false; cardMoved = false; }
+function onMouseMove(e) {
+  if (e.buttons !== 1) return;
+  const dx = e.clientX - startX;
+  if (Math.abs(dx) > 8) { isDragging = true; cardMoved = true; }
+  if (!isDragging) return;
+  moveCard(dx);
+}
+function onMouseUp(e) { const dx = e.clientX - startX; if (isDragging && cardMoved) finishSwipe(dx); isDragging = false; setTimeout(function(){ cardMoved = false; }, 50); }
+
+function moveCard(dx) {
+  const el = currentCardEl; if (!el) return;
+  el.style.transform = 'translateX(' + dx + 'px) rotate(' + (dx*.07) + 'deg)';
+  el.style.transition = 'none';
+  const l = document.getElementById('ovL'), r = document.getElementById('ovR');
+  if (l && r) {
+    if (dx < -20) { l.style.opacity = Math.min(1, (-dx-20)/80); r.style.opacity = 0; }
+    else if (dx > 20) { r.style.opacity = Math.min(1, (dx-20)/80); l.style.opacity = 0; }
+    else { l.style.opacity = 0; r.style.opacity = 0; }
+  }
+}
+
+function finishSwipe(dx) {
+  const el = currentCardEl; if (!el) return;
+  if (Math.abs(dx) > 80) {
+    const d = dx > 0 ? 1 : -1;
+    el.style.transition = 'transform .3s ease-in,opacity .3s';
+    el.style.transform = 'translateX(' + (d*420) + 'px) rotate(' + (d*18) + 'deg)';
+    el.style.opacity = '0';
+    window.removeEventListener('mousemove', onMouseMove);
+    window.removeEventListener('mouseup', onMouseUp);
+    setTimeout(function() { markFlip(d > 0); }, 270);
+  } else {
+    el.style.transition = 'transform .3s cubic-bezier(.4,0,.2,1)'; el.style.transform = '';
+    const l = document.getElementById('ovL'), r = document.getElementById('ovR');
+    if (l) l.style.opacity = 0; if (r) r.style.opacity = 0;
+  }
+}
+
+function markFlip(ok) {
+  window.removeEventListener('mousemove', onMouseMove);
+  window.removeEventListener('mouseup', onMouseUp);
+  if (ok) sCorrect++; else { sWrong++; studyQueue.push(studyQueue[studyIndex]); }
+  studyIndex++;
+  setTimeout(renderFlipCard, 50);
+}
+
+function showFlipResult() {
+  const total = sCorrect + sWrong, pct = total > 0 ? Math.round(sCorrect/total*100) : 0;
+  const el = document.getElementById('studyContent');
+  el.innerHTML = '<div class="result-box"><div class="big">🎉</div><h3>セッション完了！</h3><p>正解率 <strong>' + pct + '%</strong>（' + sCorrect + ' / ' + total + '）</p></div>';
+  const btn = document.createElement('button');
+  btn.className = 'btn blue'; btn.textContent = 'もう一度学習する';
+  btn.addEventListener('click', initFlip);
+  el.querySelector('.result-box').appendChild(btn);
+}
+
+// ===== QUIZ =====
+function initQuiz() {
+  const sc = getStudyCards();
+  if (sc.length < 2) { document.getElementById('studyContent').innerHTML = '<div class="empty-msg">写真選択モードにはカードが2枚以上必要です</div>'; return; }
+  quizQueue = shuffle(sc.slice()); quizIndex = 0; qCorrect = 0; qWrong = 0;
+  renderQuiz();
+}
+
+function buildOptions(target) {
+  const pool = cards.length >= 4 ? cards : getStudyCards();
+  const n = Math.min(4, pool.length);
+  const others = shuffle(pool.filter(function(c){ return c.id !== target.id; })).slice(0, n-1);
+  return shuffle([target].concat(others));
+}
+
+function renderQuiz() {
+  if (quizIndex >= quizQueue.length) { showQuizResult(); return; }
+  quizAnswered = false;
+  const target = quizQueue[quizIndex];
+  const opts = buildOptions(target);
+  buildOptionsRef = opts;
+  const total = quizQueue.length;
+  const el = document.getElementById('studyContent');
+
+  const statsHTML = '<div class="stats-bar">'
+    + '<div class="stat"><div class="num" style="color:#0F6E56">' + qCorrect + '</div><div class="lbl">正解</div></div>'
+    + '<div class="stat"><div class="num">' + (total-quizIndex) + '</div><div class="lbl">残り</div></div>'
+    + '<div class="stat"><div class="num" style="color:#c0392b">' + qWrong + '</div><div class="lbl">不正解</div></div>'
+    + '</div>';
+  const qHTML = '<div class="quiz-q"><div class="ql">この名称の写真はどれ？</div><div class="qn">' + escH(target.name) + '</div>'
+    + (target.desc ? '<div class="qd">' + escH(target.desc) + '</div>' : '') + '</div>'
+    + '<div class="card-counter" style="text-align:center;">' + (quizIndex+1) + ' / ' + total + '</div>';
+
+  el.innerHTML = statsHTML + '<div class="quiz-area">' + qHTML + '<div class="quiz-opts" id="quizOpts"></div></div>';
+
+  const optsEl = document.getElementById('quizOpts');
+  opts.forEach(function(c, i) {
+    const div = document.createElement('div');
+    div.className = 'quiz-opt';
+    div.innerHTML = (c.img ? '<img src="' + c.img + '" alt="">' : '<div class="no-img">📷<br><span>画像なし</span></div>')
+      + '<div class="reveal-label">' + escH(c.name) + '</div>';
+    div.addEventListener('click', function() { answerQuiz(i, c.id === target.id, target.id); });
+    optsEl.appendChild(div);
+  });
+
+  const nextBtn = document.createElement('button');
+  nextBtn.className = 'btn'; nextBtn.id = 'qNext'; nextBtn.style.display = 'none'; nextBtn.style.marginTop = '4px';
+  nextBtn.textContent = '次の問題へ →';
+  nextBtn.addEventListener('click', function() { quizIndex++; renderQuiz(); });
+  el.querySelector('.quiz-area').appendChild(nextBtn);
+}
+
+function answerQuiz(idx, ok, targetId) {
+  if (quizAnswered) return;
+  quizAnswered = true;
+  const opts = document.getElementById('quizOpts').children;
+  Array.from(opts).forEach(function(el, i) {
+    el.style.pointerEvents = 'none';
+    el.classList.add('disabled');
+    if (buildOptionsRef[i].id === targetId) {
+      el.classList.add('correct');
+      const b = document.createElement('div'); b.className = 'badge'; b.textContent = '✓';
+      el.appendChild(b);
+    } else if (i === idx && !ok) {
+      el.classList.add('wrong');
+      const b = document.createElement('div'); b.className = 'badge'; b.textContent = '✕';
+      el.appendChild(b);
+    }
+  });
+  if (ok) qCorrect++; else qWrong++;
+  document.getElementById('qNext').style.display = 'block';
+}
+
+function showQuizResult() {
+  const total = qCorrect + qWrong, pct = total > 0 ? Math.round(qCorrect/total*100) : 0;
+  const em = pct >= 80 ? '🎉' : pct >= 50 ? '😊' : '💪';
+  const el = document.getElementById('studyContent');
+  el.innerHTML = '<div class="result-box"><div class="big">' + em + '</div><h3>クイズ完了！</h3><p>正解率 <strong>' + pct + '%</strong>（' + qCorrect + ' / ' + total + '）</p></div>';
+  const rb = el.querySelector('.result-box');
+  const b1 = document.createElement('button'); b1.className = 'btn blue'; b1.textContent = 'もう一度挑戦する';
+  b1.addEventListener('click', initQuiz);
+  const b2 = document.createElement('button'); b2.className = 'btn'; b2.style.marginTop = '8px'; b2.textContent = 'フリップモードへ';
+  b2.addEventListener('click', function() { setMode('flip'); });
+  rb.appendChild(b1); rb.appendChild(b2);
+}
+
+// ===== INIT =====
+document.addEventListener('DOMContentLoaded', function() {
+  load();
+  renderCards();
+  renderGroups();
+
+  // タブ
+  document.querySelectorAll('.nav-tab').forEach(function(t) {
+    t.addEventListener('click', function() { showTab(t.dataset.tab); });
+  });
+
+  // モード切替
+  document.getElementById('modeFlip').addEventListener('click', function() { setMode('flip'); });
+  document.getElementById('modeQuiz').addEventListener('click', function() { setMode('quiz'); });
+
+  // エクスポート
+  document.getElementById('btnExport').addEventListener('click', exportData);
+
+  // インポート
+  document.getElementById('importFile').addEventListener('change', handleImportFile);
+
+  // 写真選択
+  document.getElementById('imgPreview').addEventListener('click', function() { document.getElementById('fileInput').click(); });
+  document.getElementById('fileInput').addEventListener('change', function(e) {
+    const f = e.target.files[0]; if (!f) return;
+    const r = new FileReader();
+    r.onload = function(ev) {
+      currentImg = ev.target.result;
+      document.getElementById('imgPreview').innerHTML = '<img src="' + ev.target.result + '" alt="">';
+    };
+    r.readAsDataURL(f);
+  });
+
+  // カード追加
+  document.getElementById('btnAddCard').addEventListener('click', addCard);
+
+  // グループ作成
+  document.getElementById('btnAddGroup').addEventListener('click', showAddGroupModal);
+});
+
+})();
+</script>
+</body>
+</html>
